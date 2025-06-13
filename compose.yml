@@ -1,0 +1,46 @@
+services:
+  db:
+    image: mysql:9.3
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: true
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+
+  node:
+    image: node:latest
+    user: node
+    working_dir: /home/node/calendar-io
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./:/home/node/calendar-io
+    command: npm run dev
+
+  app:
+    build: .docker/app
+    working_dir: /var/www
+    ports:
+      - "80:80"
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - db
+      - node
+    command: php artisan serve --host=0.0.0.0 --port=80
+
+  migrate:
+    build: .docker/app
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - db
+    entrypoint: .docker/migrate/entrypoint.sh
+
+volumes:
+  db_data:
